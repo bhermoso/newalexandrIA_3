@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteca REDCap</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .header h1 { font-size: 28px; color: #1a202c; }
+        .header p { color: #718096; font-size: 14px; margin-top: 4px; }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover { transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .stat-label { font-size: 13px; color: #718096; margin-bottom: 8px; }
+        .stat-value { font-size: 32px; font-weight: 700; color: #667eea; }
+        
+        .search-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .search-controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+        
+        .search-input, .select {
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .search-input { flex: 1; min-width: 250px; }
+        .search-input:focus, .select:focus { outline: none; border-color: #667eea; }
+        
+        .clear-btn {
+            padding: 12px 20px;
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .clear-btn:hover { background: #edf2f7; border-color: #cbd5e0; }
+        
+        .dict-card {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+            transition: box-shadow 0.3s;
+        }
+        
+        .dict-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+        
+        .dict-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .dict-header:hover { opacity: 0.95; }
+        
+        .dict-name { font-size: 18px; font-weight: 600; }
+        .dict-meta { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+        
+        .dict-actions { display: flex; gap: 8px; }
+        
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background 0.2s;
+        }
+        
+        .icon-btn:hover { background: rgba(255,255,255,0.3); }
+        
+        .dict-content { padding: 24px; }
+        
+        .category {
+            margin-bottom: 24px;
+            border-left: 4px solid #667eea;
+            background: #f7fafc;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .cat-header {
+            padding: 16px 20px;
+            background: #edf2f7;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        
+        .cat-header:hover { background: #e2e8f0; }
+        
+        .cat-title {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .fields { padding: 16px 20px; }
+        
+        .field {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+        
+        .field:hover { border-color: #667eea; box-shadow: 0 2px 4px rgba(102, 126, 234, 0.1); }
+        
+        .field-header { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; flex-wrap: wrap; }
+        
+        .field-name {
+            font-family: 'Courier New', monospace;
+            background: #edf2f7;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .field-type {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+        
+        .field-label { 
+            font-size: 14px; 
+            color: #4a5568; 
+            line-height: 1.5; 
+            margin-top: 4px;
+        }
+        
+        .field-options {
+            background: #f7fafc;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #718096;
+            margin-top: 8px;
+            border-left: 3px solid #cbd5e0;
+        }
+        
+        .field-validation {
+            background: #fffaf0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #975a16;
+            margin-top: 8px;
+            border-left: 3px solid #f6ad55;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .modal.show { display: flex; }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .modal-title { font-size: 24px; font-weight: 700; }
+        
+        .form-group { margin-bottom: 20px; }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2d3748;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .form-input:focus { outline: none; border-color: #667eea; }
+        
+        .upload-zone {
+            border: 3px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-zone:hover { border-color: #667eea; background: #f7fafc; }
+        .upload-zone.dragover { border-color: #667eea; background: #ebf8ff; }
+        
+        .info-box {
+            background: #ebf8ff;
+            border-left: 4px solid #4299e1;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .success-box {
+            background: #f0fff4;
+            border-left: 4px solid #48bb78;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 13px;
+        }
+        
+        .error-box {
+            background: #fff5f5;
+            border-left: 4px solid #f56565;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 13px;
+        }
+        
+        .hidden { display: none; }
+        
+        .empty { 
+            text-align: center; 
+            padding: 60px 20px; 
+            color: #718096; 
+        }
+        
+        .empty-icon { 
+            font-size: 64px; 
+            margin-bottom: 16px; 
+            opacity: 0.5; 
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .expand-all-btn {
+            padding: 8px 16px;
+            background: #edf2f7;
+            color: #4a5568;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .expand-all-btn:hover { background: #e2e8f0; }
+        
+        @media (max-width: 768px) {
+            .header { flex-direction: column; text-align: center; }
+            .search-controls { flex-direction: column; }
+            .dict-header { flex-direction: column; gap: 16px; align-items: flex-start; }
+            .dict-actions { width: 100%; justify-content: flex-end; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📊 Biblioteca REDCap</h1>
+                <p>Gestión y visualización de diccionarios de datos</p>
+            </div>
+            <button class="btn" onclick="openModal()">➕ Añadir Diccionario</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Diccionarios</div>
+                <div class="stat-value" id="statDicts">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Categorías</div>
+                <div class="stat-value" id="statCats">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Variables</div>
+                <div class="stat-value" id="statVars">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Tipos de campo</div>
+                <div class="stat-value" id="statTypes">0</div>
+            </div>
+        </div>
+
+        <div class="search-bar">
+            <div class="search-controls">
+                <input type="text" class="search-input" id="searchInput" placeholder="🔍 Buscar por nombre de variable o etiqueta..." oninput="render()">
+                <select class="select" id="typeFilter" onchange="render()">
+                    <option value="all">Todos los tipos</option>
+                </select>
+                <select class="select" id="dictFilter" onchange="render()">
+                    <option value="all">Todos los diccionarios</option>
+                </select>
+                <button class="clear-btn" onclick="clearFilters()">Limpiar filtros</button>
+            </div>
+        </div>
+
+        <div id="container"></div>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Añadir Diccionario</h2>
+                <button class="icon-btn" onclick="closeModal()" style="background:#edf2f7;color:#2d3748;">✕</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nombre del diccionario (opcional)</label>
+                <input type="text" class="form-input" id="dictName" placeholder="Ej: Encuesta de Salud Universitaria">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Archivo CSV del diccionario de datos</label>
+                <input type="file" accept=".csv" id="fileInput" class="hidden" onchange="processFile(event)">
+                <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                    <div style="font-size:48px;margin-bottom:12px;">📁</div>
+                    <div style="font-size:16px;font-weight:600;margin-bottom:8px;">Selecciona o arrastra un archivo CSV</div>
+                    <div style="font-size:14px;color:#718096;">Diccionario de datos exportado desde REDCap</div>
+                </div>
+            </div>
+            <div class="info-box">
+                <strong>📋 Procesamiento automático:</strong><br>
+                ✓ Extrae todas las variables y sus propiedades<br>
+                ✓ Clasifica automáticamente en categorías temáticas<br>
+                ✓ Mantiene tipos de campo, etiquetas y validaciones<br>
+                ✓ Detecta campos calculados y descriptivos<br>
+                ✓ Preserva opciones de respuesta y lógica de ramificación
+            </div>
+            <div id="uploadStatus"></div>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            dicts: [],
+            expandedDicts: {},
+            expandedCats: {}
+        };
+
+        // Clasificación inteligente de variables en categorías
+        function classify(variable, existingCategories) {
+            const nombre = variable.nombre.toLowerCase();
+            const etiqueta = variable.etiqueta.toLowerCase();
+            const combined = nombre + ' ' + etiqueta;
+            
+            // Primero intentar clasificar en categorías existentes
+            for (const cat of Object.keys(existingCategories)) {
+                const catLower = cat.toLowerCase();
+                
+                // Coincidencias exactas con categorías existentes
+                if (catLower.includes('identificación') && nombre === 'record_id') return cat;
+                if (catLower.includes('autopercepción') && (nombre.includes('autopercepcion') || etiqueta.includes('autopercepción'))) return cat;
+                if (catLower.includes('vida') && (nombre.includes('vida_universitaria') || etiqueta.includes('vida universitaria'))) return cat;
+                if (catLower.includes('alimentación') && (nombre.includes('alimentacion') || etiqueta.includes('alimentación') || etiqueta.includes('dieta'))) return cat;
+                if (catLower.includes('actividad') && (nombre.includes('actividad_fisica') || etiqueta.includes('ejercicio') || etiqueta.includes('actividad física'))) return cat;
+                if (catLower.includes('sueño') && (nombre.includes('sueno') || etiqueta.includes('sueño') || etiqueta.includes('dormir'))) return cat;
+                if (catLower.includes('bienestar') && (nombre.includes('bienestar') || etiqueta.includes('bienestar') || etiqueta.includes('ánimo'))) return cat;
+                if (catLower.includes('tabaco') && (nombre.includes('tabaco') || etiqueta.includes('fumar') || etiqueta.includes('tabaco'))) return cat;
+                if (catLower.includes('alcohol') && (nombre.includes('alcohol') || etiqueta.includes('alcohol') || etiqueta.includes('bebidas'))) return cat;
+                if (catLower.includes('sexualidad') && (nombre.includes('sexualidad') || nombre.includes('sexual') || etiqueta.includes('sexual'))) return cat;
+                if (catLower.includes('relaciones') && (nombre.includes('relacion') || etiqueta.includes('relaciones') || etiqueta.includes('apoyo social'))) return cat;
+                if (catLower.includes('cálculo') && variable.tipo === 'calc') return cat;
+                if (catLower.includes('feedback') && nombre.includes('feedback')) return cat;
+                if (catLower.includes('interfaz') && variable.tipo === 'descriptive') return cat;
+                if (catLower.includes('demográficos') && (nombre.includes('edad') || nombre.includes('sexo') || nombre.includes('genero'))) return cat;
+            }
+            
+            // Clasificación por patrones en el nombre de la variable
+            if (nombre === 'record_id') return 'Identificación';
+            
+            // Datos demográficos
+            if (nombre.includes('edad') || nombre.includes('sexo') || nombre.includes('genero') || 
+                nombre.includes('carrera') || nombre.includes('curso') || nombre.includes('ano_nacimiento')) {
+                return 'Datos Demográficos';
+            }
+            
+            // Salud y autopercepción
+            if (nombre.includes('autopercepcion') || nombre.includes('salud_general') || 
+                nombre.includes('salud_fisica') || nombre.includes('salud_mental')) {
+                return 'Autopercepción de Salud';
+            }
+            
+            // Vida universitaria
+            if (nombre.includes('vida_universitaria') || nombre.includes('ambiente_universitario') || 
+                nombre.includes('carga_academica') || nombre.includes('estres_academico')) {
+                return 'Vida Universitaria';
+            }
+            
+            // Alimentación
+            if (nombre.includes('alimentacion') || nombre.includes('comida') || nombre.includes('dieta') ||
+                nombre.includes('desayuno') || nombre.includes('frutas') || nombre.includes('vegetales')) {
+                return 'Alimentación';
+            }
+            
+            // Actividad física
+            if (nombre.includes('actividad_fisica') || nombre.includes('ejercicio') || 
+                nombre.includes('deporte') || nombre.includes('sedentario')) {
+                return 'Actividad Física';
+            }
+            
+            // Sueño
+            if (nombre.includes('sueno') || nombre.includes('dormir') || nombre.includes('descanso')) {
+                return 'Sueño';
+            }
+            
+            // Bienestar emocional
+            if (nombre.includes('bienestar') || nombre.includes('animo') || nombre.includes('estres') ||
+                nombre.includes('ansiedad') || nombre.includes('depresion') || nombre.includes('emocional')) {
+                return 'Bienestar Emocional';
+            }
+            
+            // Consumo de sustancias
+            if (nombre.includes('tabaco') || nombre.includes('fumar') || nombre.includes('cigarro')) {
+                return 'Tabaco';
+            }
+            if (nombre.includes('alcohol') || nombre.includes('bebida')) {
+                return 'Alcohol';
+            }
+            if (nombre.includes('droga') || nombre.includes('sustancia')) {
+                return 'Otras Sustancias';
+            }
+            
+            // Sexualidad y relaciones
+            if (nombre.includes('sexualidad') || nombre.includes('sexual') || nombre.includes('pareja')) {
+                return 'Sexualidad';
+            }
+            if (nombre.includes('relacion') || nombre.includes('apoyo_social') || nombre.includes('amistad')) {
+                return 'Relaciones Sociales';
+            }
+            
+            // Campos especiales por tipo
+            if (variable.tipo === 'calc') return 'Campos de Cálculo';
+            if (nombre.includes('feedback') || nombre.includes('resultado')) return 'Feedback y Resultados';
+            if (variable.tipo === 'descriptive') return 'Interfaz y Presentación';
+            
+            // Clasificación por etiqueta si no hay coincidencia por nombre
+            if (etiqueta.includes('salud')) return 'Autopercepción de Salud';
+            if (etiqueta.includes('universidad') || etiqueta.includes('académic')) return 'Vida Universitaria';
+            if (etiqueta.includes('comida') || etiqueta.includes('aliment')) return 'Alimentación';
+            if (etiqueta.includes('ejercicio') || etiqueta.includes('físic')) return 'Actividad Física';
+            if (etiqueta.includes('sueño') || etiqueta.includes('dormir')) return 'Sueño';
+            if (etiqueta.includes('emocion') || etiqueta.includes('estrés')) return 'Bienestar Emocional';
+            
+            return 'Otros Campos';
+        }
+
+        // Procesar archivo CSV
+        function processFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const statusDiv = document.getElementById('uploadStatus');
+            statusDiv.innerHTML = '<div class="info-box"><div class="loading"></div> Procesando archivo...</div>';
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    try {
+                        const rawData = results.data;
+                        
+                        // Extraer variables con todas sus propiedades
+                        const variables = rawData.map(row => ({
+                            nombre: (row['Variable / Field Name'] || '').trim(),
+                            tipo: (row['Field Type'] || '').trim(),
+                            etiqueta: (row['Field Label'] || '').trim(),
+                            opciones: (row['Choices, Calculations, OR Slider Labels'] || '').trim(),
+                            validacion: (row['Text Validation Type OR Show Slider Number'] || '').trim(),
+                            minimo: (row['Text Validation Min'] || '').trim(),
+                            maximo: (row['Text Validation Max'] || '').trim(),
+                            identificador: (row['Identifier?'] || '').trim(),
+                            logicaRamificacion: (row['Branching Logic (Show field only if...)'] || '').trim(),
+                            requerido: (row['Required Field?'] || '').trim(),
+                            alineacion: (row['Custom Alignment'] || '').trim(),
+                            matriz: (row['Matrix Group Name'] || '').trim(),
+                            notas: (row['Field Note'] || '').trim()
+                        })).filter(v => v.nombre);
+
+                        // Obtener categorías existentes de todos los diccionarios
+                        const existingCategories = {};
+                        state.dicts.forEach(dict => {
+                            Object.keys(dict.categorias).forEach(cat => {
+                                existingCategories[cat] = true;
+                            });
+                        });
+
+                        // Clasificar variables en categorías
+                        const categorias = {};
+                        variables.forEach(variable => {
+                            const categoria = classify(variable, existingCategories);
+                            if (!categorias[categoria]) {
+                                categorias[categoria] = [];
+                            }
+                            categorias[categoria].push(variable);
+                        });
+
+                        // Crear diccionario
+                        const nombreDict = document.getElementById('dictName').value || file.name.replace('.csv', '');
+                        const nuevoDict = {
+                            id: Date.now(),
+                            nombre: nombreDict,
+                            categorias: categorias,
+                            fechaCreacion: new Date().toISOString()
+                        };
+
+                        state.dicts.push(nuevoDict);
+                        state.expandedDicts[nuevoDict.id] = true;
+                        
+                        statusDiv.innerHTML = `
+                            <div class="success-box">
+                                <strong>✓ Diccionario cargado exitosamente</strong><br>
+                                ${Object.keys(categorias).length} categorías • ${variables.length} variables
+                            </div>
+                        `;
+                        
+                        setTimeout(() => {
+                            closeModal();
+                            render();
+                            saveToLocalStorage();
+                        }, 1500);
+                        
+                    } catch (error) {
+                        statusDiv.innerHTML = `
+                            <div class="error-box">
+                                <strong>✗ Error al procesar el archivo</strong><br>
+                                ${error.message}
+                            </div>
+                        `;
+                    }
+                },
+                error: function(error) {
+                    document.getElementById('uploadStatus').innerHTML = `
+                        <div class="error-box">
+                            <strong>✗ Error al leer el archivo</strong><br>
+                            ${error.message}
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        // Drag and drop
+        const uploadZone = document.getElementById('uploadZone');
+        if (uploadZone) {
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    document.getElementById('fileInput').files = files;
+                    processFile({ target: { files: files } });
+                }
+            });
+        }
+
+        function openModal() {
+            document.getElementById('modal').classList.add('show');
+            document.getElementById('uploadStatus').innerHTML = '';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('show');
+            document.getElementById('dictName').value = '';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('uploadStatus').innerHTML = '';
+        }
+
+        function toggleDict(id) {
+            state.expandedDicts[id] = !state.expandedDicts[id];
+            render();
+        }
+
+        function toggleCat(dictId, catName) {
+            const key = dictId + '-' + catName;
+            state.expandedCats[key] = !state.expandedCats[key];
+            render();
+        }
+
+        function expandAllCats(dictId) {
+            const dict = state.dicts.find(d => d.id === dictId);
+            if (!dict) return;
+            
+            Object.keys(dict.categorias).forEach(cat => {
+                const key = dictId + '-' + cat;
+                state.expandedCats[key] = true;
+            });
+            render();
+        }
+
+        function collapseAllCats(dictId) {
+            const dict = state.dicts.find(d => d.id === dictId);
+            if (!dict) return;
+            
+            Object.keys(dict.categorias).forEach(cat => {
+                const key = dictId + '-' + cat;
+                state.expandedCats[key] = false;
+            });
+            render();
+        }
+
+        function deleteDict(id) {
+            if (confirm('¿Estás seguro de que deseas eliminar este diccionario?')) {
+                state.dicts = state.dicts.filter(d => d.id !== id);
+                delete state.expandedDicts[id];
+                render();
+                saveToLocalStorage();
+            }
+        }
+
+        function downloadDict(dict) {
+            // Crear CSV con todas las columnas del diccionario REDCap
+            const headers = [
+                'Variable / Field Name',
+                'Form Name',
+                'Section Header',
+                'Field Type',
+                'Field Label',
+                'Choices, Calculations, OR Slider Labels',
+                'Field Note',
+                'Text Validation Type OR Show Slider Number',
+                'Text Validation Min',
+                'Text Validation Max',
+                'Identifier?',
+                'Branching Logic (Show field only if...)',
+                'Required Field?',
+                'Custom Alignment',
+                'Question Number (surveys only)',
+                'Matrix Group Name',
+                'Matrix Ranking?',
+                'Field Annotation'
+            ];
+            
+            let csv = headers.map(h => '"' + h + '"').join(',') + '\n';
+            
+            Object.entries(dict.categorias).forEach(([categoria, campos]) => {
+                campos.forEach(campo => {
+                    const row = [
+                        campo.nombre || '',
+                        '', // Form Name
+                        categoria, // Section Header
+                        campo.tipo || '',
+                        campo.etiqueta || '',
+                        campo.opciones || '',
+                        campo.notas || '',
+                        campo.validacion || '',
+                        campo.minimo || '',
+                        campo.maximo || '',
+                        campo.identificador || '',
+                        campo.logicaRamificacion || '',
+                        campo.requerido || '',
+                        campo.alineacion || '',
+                        '', // Question Number
+                        campo.matriz || '',
+                        '', // Matrix Ranking
+                        '' // Field Annotation
+                    ];
+                    
+                    csv += row.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',') + '\n';
+                });
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = dict.nombre + '.csv';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportAllDicts() {
+            if (state.dicts.length === 0) {
+                alert('No hay diccionarios para exportar');
+                return;
+            }
+            
+            state.dicts.forEach(dict => {
+                downloadDict(dict);
+            });
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('typeFilter').value = 'all';
+            document.getElementById('dictFilter').value = 'all';
+            render();
+        }
+
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('redcapLibrary', JSON.stringify(state));
+            } catch (e) {
+                console.error('Error al guardar en localStorage:', e);
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('redcapLibrary');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    state.dicts = parsed.dicts || [];
+                    state.expandedDicts = parsed.expandedDicts || {};
+                    state.expandedCats = parsed.expandedCats || {};
+                }
+            } catch (e) {
+                console.error('Error al cargar desde localStorage:', e);
+            }
+        }
+
+        function render() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter').value;
+            const dictFilter = document.getElementById('dictFilter').value;
+            
+            // Calcular estadísticas
+            let totalCats = 0;
+            let totalVars = 0;
+            const types = new Set();
+            
+            state.dicts.forEach(dict => {
+                totalCats += Object.keys(dict.categorias).length;
+                Object.values(dict.categorias).forEach(campos => {
+                    totalVars += campos.length;
+                    campos.forEach(campo => types.add(campo.tipo));
+                });
+            });
+
+            document.getElementById('statDicts').textContent = state.dicts.length;
+            document.getElementById('statCats').textContent = totalCats;
+            document.getElementById('statVars').textContent = totalVars;
+            document.getElementById('statTypes').textContent = types.size;
+
+            // Actualizar filtro de tipos
+            const typeSelect = document.getElementById('typeFilter');
+            const currentType = typeSelect.value;
+            typeSelect.innerHTML = '<option value="all">Todos los tipos</option>';
+            Array.from(types).sort().forEach(tipo => {
+                const option = document.createElement('option');
+                option.value = tipo;
+                option.textContent = tipo;
+                typeSelect.appendChild(option);
+            });
+            typeSelect.value = currentType;
+
+            // Actualizar filtro de diccionarios
+            const dictSelect = document.getElementById('dictFilter');
+            const currentDict = dictSelect.value;
+            dictSelect.innerHTML = '<option value="all">Todos los diccionarios</option>';
+            state.dicts.forEach(dict => {
+                const option = document.createElement('option');
+                option.value = dict.id;
+                option.textContent = dict.nombre;
+                dictSelect.appendChild(option);
+            });
+            dictSelect.value = currentDict;
+
+            const container = document.getElementById('container');
+            
+            if (state.dicts.length === 0) {
+                container.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">📋</div>
+                        <h3 style="margin-bottom:8px;color:#2d3748;">No hay diccionarios cargados</h3>
+                        <p>Añade tu primer diccionario de datos REDCap para comenzar</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            
+            // Filtrar diccionarios
+            const dictsToShow = dictFilter === 'all' 
+                ? state.dicts 
+                : state.dicts.filter(d => d.id === parseInt(dictFilter));
+
+            dictsToShow.forEach(dict => {
+                const isExpanded = state.expandedDicts[dict.id];
+                
+                // Aplicar filtros de búsqueda y tipo
+                const filteredCats = {};
+                Object.entries(dict.categorias).forEach(([cat, campos]) => {
+                    const filtered = campos.filter(campo => {
+                        const matchSearch = !search || 
+                            campo.nombre.toLowerCase().includes(search) || 
+                            campo.etiqueta.toLowerCase().includes(search) ||
+                            campo.opciones.toLowerCase().includes(search);
+                        const matchType = typeFilter === 'all' || campo.tipo === typeFilter;
+                        return matchSearch && matchType;
+                    });
+                    if (filtered.length > 0) {
+                        filteredCats[cat] = filtered;
+                    }
+                });
+
+                // Si no hay resultados con los filtros, no mostrar el diccionario
+                if (Object.keys(filteredCats).length === 0 && (search || typeFilter !== 'all')) {
+                    return;
+                }
+
+                const totalFields = Object.values(dict.categorias).reduce((sum, campos) => sum + campos.length, 0);
+                const numCats = Object.keys(dict.categorias).length;
+
+                html += '<div class="dict-card">';
+                html += '<div class="dict-header" onclick="toggleDict(' + dict.id + ')">';
+                html += '<div style="flex:1;">';
+                html += '<div class="dict-name">' + (isExpanded ? '▼' : '▶') + ' ' + escapeHtml(dict.nombre) + '</div>';
+                html += '<div class="dict-meta">' + numCats + ' categorías • ' + totalFields + ' variables';
+                if (dict.fechaCreacion) {
+                    const fecha = new Date(dict.fechaCreacion).toLocaleDateString('es-ES');
+                    html += ' • ' + fecha;
+                }
+                html += '</div>';
+                html += '</div>';
+                html += '<div class="dict-actions">';
+                html += '<button class="icon-btn" onclick="event.stopPropagation(); expandAllCats(' + dict.id + ')" title="Expandir todo">📂</button>';
+                html += '<button class="icon-btn" onclick="event.stopPropagation(); collapseAllCats(' + dict.id + ')" title="Colapsar todo">📁</button>';
+                html += '<button class="icon-btn" onclick="event.stopPropagation(); downloadDict(' + JSON.stringify(dict).replace(/"/g, '&quot;') + ')" title="Descargar">⬇</button>';
+                html += '<button class="icon-btn" onclick="event.stopPropagation(); deleteDict(' + dict.id + ')" title="Eliminar">🗑</button>';
+                html += '</div>';
+                html += '</div>';
+                
+                if (isExpanded) {
+                    html += '<div class="dict-content">';
+                    
+                    const catsToShow = Object.keys(filteredCats).length > 0 ? filteredCats : dict.categorias;
+                    
+                    Object.entries(catsToShow).forEach(([categoria, campos]) => {
+                        const key = dict.id + '-' + categoria;
+                        const isCatExpanded = state.expandedCats[key];
+                        
+                        html += '<div class="category">';
+                        html += '<div class="cat-header" onclick="toggleCat(' + dict.id + ',\'' + escapeHtml(categoria) + '\')">';
+                        html += '<div class="cat-title">';
+                        html += '<span>' + (isCatExpanded ? '▼' : '▶') + '</span>';
+                        html += '<span>' + escapeHtml(categoria) + '</span>';
+                        html += '<span class="badge">' + campos.length + '</span>';
+                        html += '</div>';
+                        html += '</div>';
+                        
+                        if (isCatExpanded) {
+                            html += '<div class="fields">';
+                            campos.forEach(campo => {
+                                html += '<div class="field">';
+                                html += '<div class="field-header">';
+                                html += '<div class="field-name">' + escapeHtml(campo.nombre) + '</div>';
+                                html += '<div class="field-type">' + escapeHtml(campo.tipo) + '</div>';
+                                if (campo.requerido === 'y') {
+                                    html += '<span style="color:#e53e3e;font-size:12px;font-weight:bold;" title="Campo requerido">*</span>';
+                                }
+                                html += '</div>';
+                                
+                                if (campo.etiqueta) {
+                                    const cleanLabel = campo.etiqueta.replace(/<[^>]*>/g, '');
+                                    html += '<div class="field-label">' + escapeHtml(cleanLabel) + '</div>';
+                                }
+                                
+                                if (campo.opciones) {
+                                    html += '<div class="field-options"><strong>Opciones:</strong> ' + escapeHtml(campo.opciones.substring(0, 200));
+                                    if (campo.opciones.length > 200) html += '...';
+                                    html += '</div>';
+                                }
+                                
+                                if (campo.validacion || campo.minimo || campo.maximo) {
+                                    html += '<div class="field-validation">';
+                                    html += '<strong>Validación:</strong> ';
+                                    if (campo.validacion) html += escapeHtml(campo.validacion) + ' ';
+                                    if (campo.minimo) html += 'Min: ' + escapeHtml(campo.minimo) + ' ';
+                                    if (campo.maximo) html += 'Max: ' + escapeHtml(campo.maximo);
+                                    html += '</div>';
+                                }
+                                
+                                if (campo.logicaRamificacion) {
+                                    html += '<div class="field-options"><strong>Lógica de ramificación:</strong> ' + escapeHtml(campo.logicaRamificacion.substring(0, 150));
+                                    if (campo.logicaRamificacion.length > 150) html += '...';
+                                    html += '</div>';
+                                }
+                                
+                                if (campo.notas) {
+                                    html += '<div class="field-options"><strong>Nota:</strong> ' + escapeHtml(campo.notas.substring(0, 150));
+                                    if (campo.notas.length > 150) html += '...';
+                                    html += '</div>';
+                                }
+                                
+                                html += '</div>';
+                            });
+                            html += '</div>';
+                        }
+                        
+                        html += '</div>';
+                    });
+                    
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+            });
+            
+            if (html === '') {
+                container.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">🔍</div>
+                        <h3 style="margin-bottom:8px;color:#2d3748;">No se encontraron resultados</h3>
+                        <p>Intenta ajustar los filtros de búsqueda</p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = html;
+            }
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Cargar ejemplo inicial si no hay datos guardados
+        function loadInitialExample() {
+            if (state.dicts.length > 0) return;
+            
+            const initialDict = {
+                id: Date.now(),
+                nombre: 'Encuesta de Salud Universitaria (Ejemplo)',
+                fechaCreacion: new Date().toISOString(),
+                categorias: {
+                    'Identificación': [
+                        { nombre: 'record_id', tipo: 'text', etiqueta: 'Record ID', opciones: '', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' }
+                    ],
+                    'Datos Demográficos': [
+                        { nombre: 'edad', tipo: 'text', etiqueta: '¿Cuál es tu edad?', opciones: '', validacion: 'integer', minimo: '18', maximo: '99', identificador: '', logicaRamificacion: '', requerido: 'y', alineacion: '', matriz: '', notas: 'En años cumplidos' },
+                        { nombre: 'sexo', tipo: 'radio', etiqueta: 'Sexo', opciones: '1, Hombre | 2, Mujer | 3, Otro', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: 'y', alineacion: '', matriz: '', notas: '' },
+                        { nombre: 'carrera', tipo: 'dropdown', etiqueta: '¿Qué carrera estudias?', opciones: '1, Medicina | 2, Enfermería | 3, Psicología | 4, Ingeniería | 5, Otra', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: 'y', alineacion: '', matriz: '', notas: '' }
+                    ],
+                    'Autopercepción de Salud': [
+                        { nombre: 'autopercepcion_salud_general', tipo: 'radio', etiqueta: '¿Cómo describirías tu salud en general?', opciones: '1, Excelente | 2, Muy buena | 3, Buena | 4, Regular | 5, Mala', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' },
+                        { nombre: 'autopercepcion_salud_fisica', tipo: 'radio', etiqueta: '¿Cómo calificarías tu salud física?', opciones: '1, Excelente | 2, Muy buena | 3, Buena | 4, Regular | 5, Mala', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' },
+                        { nombre: 'autopercepcion_salud_mental', tipo: 'radio', etiqueta: '¿Cómo calificarías tu salud mental?', opciones: '1, Excelente | 2, Muy buena | 3, Buena | 4, Regular | 5, Mala', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' }
+                    ],
+                    'Vida Universitaria': [
+                        { nombre: 'ambiente_universitario', tipo: 'radio', etiqueta: '¿Cómo percibes el ambiente universitario?', opciones: '1, Muy estresante | 2, Algo estresante | 3, Neutral | 4, Relajado | 5, Muy relajado', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' },
+                        { nombre: 'carga_academica', tipo: 'radio', etiqueta: '¿Cómo percibes tu carga académica?', opciones: '1, Muy alta | 2, Alta | 3, Moderada | 4, Baja | 5, Muy baja', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' }
+                    ],
+                    'Alimentación': [
+                        { nombre: 'alimentacion_desayuno', tipo: 'radio', etiqueta: '¿Con qué frecuencia desayunas?', opciones: '1, Nunca | 2, Rara vez | 3, A veces | 4, Frecuentemente | 5, Siempre', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' },
+                        { nombre: 'alimentacion_frutas', tipo: 'radio', etiqueta: '¿Cuántas porciones de frutas consumes al día?', opciones: '1, Ninguna | 2, 1 | 3, 2 | 4, 3 | 5, 4 o más', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: 'Una porción equivale a una pieza mediana' }
+                    ],
+                    'Actividad Física': [
+                        { nombre: 'actividad_fisica_semanal', tipo: 'radio', etiqueta: '¿Cuántos días a la semana realizas actividad física?', opciones: '1, Ninguno | 2, 1-2 días | 3, 3-4 días | 4, 5-6 días | 5, Todos los días', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: 'Al menos 30 minutos de ejercicio moderado' },
+                        { nombre: 'tiempo_sedentario', tipo: 'radio', etiqueta: '¿Cuántas horas pasas sentado al día?', opciones: '1, Más de 10 | 2, 8-10 | 3, 6-8 | 4, 4-6 | 5, Menos de 4', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' }
+                    ],
+                    'Sueño': [
+                        { nombre: 'sueno_horas', tipo: 'radio', etiqueta: '¿Cuántas horas duermes normalmente?', opciones: '1, Menos de 5 | 2, 5-6 | 3, 6-7 | 4, 7-8 | 5, Más de 8', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' },
+                        { nombre: 'sueno_calidad', tipo: 'radio', etiqueta: '¿Cómo calificarías la calidad de tu sueño?', opciones: '1, Muy mala | 2, Mala | 3, Regular | 4, Buena | 5, Excelente', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' }
+                    ],
+                    'Bienestar Emocional': [
+                        { nombre: 'bienestar_animo', tipo: 'radio', etiqueta: '¿Cómo describirías tu estado de ánimo general?', opciones: '1, Muy bajo | 2, Bajo | 3, Neutral | 4, Alto | 5, Muy alto', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' },
+                        { nombre: 'bienestar_estres', tipo: 'radio', etiqueta: '¿Con qué frecuencia te sientes estresado?', opciones: '1, Siempre | 2, Frecuentemente | 3, A veces | 4, Rara vez | 5, Nunca', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' }
+                    ],
+                    'Tabaco': [
+                        { nombre: 'tabaco_consumo', tipo: 'radio', etiqueta: '¿Fumas actualmente?', opciones: '1, Sí, diariamente | 2, Sí, ocasionalmente | 3, No fumo | 4, Nunca he fumado', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' }
+                    ],
+                    'Alcohol': [
+                        { nombre: 'alcohol_frecuencia', tipo: 'radio', etiqueta: '¿Con qué frecuencia consumes bebidas alcohólicas?', opciones: '1, Nunca | 2, Mensualmente o menos | 3, 2-4 veces al mes | 4, 2-3 veces por semana | 5, 4 o más veces por semana', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' }
+                    ],
+                    'Campos de Cálculo': [
+                        { nombre: 'puntuacion_total', tipo: 'calc', etiqueta: 'Puntuación Total de Salud', opciones: '[autopercepcion_salud_general] + [alimentacion_desayuno] + [actividad_fisica_semanal] + [sueno_calidad] + [bienestar_animo]', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' }
+                    ],
+                    'Interfaz y Presentación': [
+                        { nombre: 'presentacion', tipo: 'descriptive', etiqueta: '<h3>Encuesta de Salud Universitaria</h3><p>Esta encuesta evalúa diferentes aspectos de tu salud y bienestar. Tomará aproximadamente 10 minutos completarla.</p>', opciones: '', validacion: '', minimo: '', maximo: '', identificador: '', logicaRamificacion: '', requerido: '', alineacion: '', matriz: '', notas: '' }
+                    ]
+                }
+            };
+
+            state.dicts.push(initialDict);
+            state.expandedDicts[initialDict.id] = true;
+        }
+
+        // Inicialización
+        loadFromLocalStorage();
+        loadInitialExample();
+        render();
+
+        // Cerrar modal al hacer clic fuera
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
